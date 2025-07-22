@@ -3,6 +3,7 @@ import pickle
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from io import StringIO
 
 # Load the saved model
 with open('best_rf_model.pkl', 'rb') as file:
@@ -51,21 +52,36 @@ if st.button("🔍 Predict"):
     st.subheader("🔎 Prediction Result")
     if prediction == 1:
         st.error("⚠️ **High Risk of Heart Disease!**")
+        st.markdown("💡 **Advice:** Consult a cardiologist immediately. Consider adopting a healthier lifestyle including regular exercise, low-fat diet, reduced salt intake, and quitting smoking if applicable.")
     else:
         st.success("✅ **Low Risk of Heart Disease.**")
+        st.markdown("💡 **Advice:** Maintain your heart health through regular check-ups, a balanced diet, physical activity, and stress management.")
 
     st.markdown(f"**Prediction Confidence:**")
     st.progress(round(probabilities[prediction]*100))
 
     # Show input summary
     st.subheader("📋 Patient Summary")
-    st.table(pd.DataFrame(input_data, columns=columns))
+    patient_df = pd.DataFrame(input_data, columns=columns)
+    st.table(patient_df)
 
-    # Feature contribution approximation (using feature importances)
+    # Downloadable report
+    report = StringIO()
+    risk_text = "HIGH" if prediction == 1 else "LOW"
+    report.write("Heart Disease Risk Prediction Report\n")
+    report.write("------------------------------------\n")
+    report.write(f"Prediction: {risk_text} RISK\n")
+    report.write(f"Confidence: {round(probabilities[prediction]*100, 2)}%\n\n")
+    report.write("Patient Details:\n")
+    report.write(patient_df.to_string(index=False))
+    report_content = report.getvalue()
+    st.download_button("⬇️ Download Report", report_content, file_name="heart_risk_report.txt")
+
+    # Feature contribution approximation
     st.subheader("📊 Feature Influence (Relative Importance)")
     importance = model.feature_importances_
     sorted_indices = np.argsort(importance)[::-1]
-    
+
     fig, ax = plt.subplots()
     ax.barh(np.array(columns)[sorted_indices], importance[sorted_indices], color='skyblue')
     ax.invert_yaxis()
@@ -76,3 +92,5 @@ if st.button("🔍 Predict"):
 # Footer
 st.markdown("---")
 st.caption("🔬 Model trained using Random Forest | Made by Fatima Azfar | Data Source: UCI Heart Disease Dataset")
+
+
